@@ -18,42 +18,42 @@ typedef struct {
   int16_t x;
   int16_t y;
   int16_t z;
-} Accel_t;
+} Accel_t; // acceleration data struct
 
 typedef struct {
   int16_t stag;
   int16_t stat;
-} Transducer_t;
+} Transducer_t; // pressure transducer data struct
 
 typedef struct {
   long x; 
   long y;
   long z;
-} Bias;
+} Bias;  // accelerometer bias struct
 
 typedef struct {
   Accel_t accel;
   Transducer_t ducer;
   float load;
-} data_t;
+} data_t; // flight data struct for accelerometer and ducers
 
 Bias bias;
 data_t flightData;
 File dataFile;
 
 const int sdVCC = 2;
-const int chipSelect = 10;
+const int chipSelect = 10; // SPI chip select pin for SD card
 
-const int cellVCC = A0;
-const int cellSCL = A1;
-const int cellSDA = A2;
-const int calibrationFactor = 20000;
+const int cellVCC = A0; // load cell power pin
+const int cellSCL = A1; // load cell clock pin
+const int cellSDA = A2; // load cell data pin
+const int calibrationFactor = 20000; // load cell calibration factor for HX711 library
 
-int state = 0;
+int state = 0; // state tracking for flight
 
 float startTime; 
 
-HX711 cell;
+HX711 cell; // HX711 load cell object
 
 void setup() {
 
@@ -74,15 +74,15 @@ void setup() {
 
   Wire.beginTransmission(0b1101000);
   Wire.write(0x1C); // ACCEL_CONFIG
-  Wire.write(FS_BYTE_8G); // set full scale afccel range
+  Wire.write(FS_BYTE_8G); // set full scale accel range
   Wire.endTransmission();
 
   cell.begin(cellSDA, cellSCL);
   cell.set_scale(calibrationFactor);
   cell.tare();
 
-  if (!SD.begin(chipSelect)) {
-    Serial.println("SD init failure.");
+  if (!SD.begin(chipSelect)) { // SD card init failure management
+    Serial.println("SD init failure."); //
     while(true);
   } else {
     Serial.println("Successful SD init");
@@ -97,16 +97,16 @@ void setup() {
 void loop() {
 
   switch(state) {
-    case INIT: {
+    case INIT: { 
       
       Serial.println("Calibrating bias values...");
-      for(int counter=0; counter<AVG_COUNTER; counter++) {
+      for(int counter=0; counter<AVG_COUNTER; counter++) { 
         Wire.beginTransmission(0b1101000);
         Wire.write(0x3B);
         Wire.requestFrom(0b1101000, 6); // pull bytes from six accelerometer registers
         while (Wire.available() < 6);
         
-        bias.x += (Wire.read() << 8) | Wire.read();
+        bias.x += (Wire.read() << 8) | Wire.read(); // read accelerometer axes
         bias.y += (Wire.read() << 8) | Wire.read();
         bias.z += (Wire.read() << 8) | Wire.read();
         Wire.endTransmission();
@@ -116,7 +116,7 @@ void loop() {
         Serial.println(bias.z);
         
       }
-      bias.x = bias.x/AVG_COUNTER;
+      bias.x = bias.x/AVG_COUNTER; // divide sum of accelerometer readings by number of readings
       bias.y = bias.y/AVG_COUNTER;
       bias.z = bias.z/AVG_COUNTER;
       Serial.println("Bias values ready.");
@@ -127,7 +127,7 @@ void loop() {
       Serial.println("Ready for launch");
       state++;
     }
-    case READY: {
+    case READY: { // launch detection
       
       while(true) {
         Wire.beginTransmission(0b1101000);
